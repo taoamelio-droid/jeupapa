@@ -2,6 +2,10 @@
 
 Petit jeu de puzzle physique (glissade parallèle de pièces sur un plateau) accompagné d'un serveur web qui affiche, pour chaque niveau, le *pattern* à reproduire et permet de suivre la progression du joueur.
 
+> Une photo du jeu assemblé est disponible dans le dépôt : [`photo-jeu-papa.jpg`](photo-jeu-papa.jpg).
+
+![Photo du jeu imprimé et assemblé](photo-jeu-papa.jpg)
+
 ## Contenu du projet
 
 Ce dépôt contient **deux volets complémentaires** :
@@ -61,3 +65,4 @@ rm -f levels.json && PAPA_FORCE_REBUILD_LEVELS=1 python3 papa_cursor_app_v2.py
 - `requirements.txt` — dépendances Python.
 - `railpack.json` — configuration de déploiement Railway.
 - `*.stl` — pièces imprimables en 3D (plateau + blocs du jeu), exportées depuis Autodesk Fusion.
+- `photo-jeu-papa.jpg` — photo du jeu imprimé et assemblé.
