@@ -2,6 +2,10 @@
 
 Petit jeu de puzzle physique (glissade parallèle de pièces sur un plateau) accompagné d'un serveur web qui affiche, pour chaque niveau, le *pattern* à reproduire et permet de suivre la progression du joueur.
 
+> Une photo du jeu assemblé est disponible dans le dépôt : [`photo-jeu-papa.jpg`](photo-jeu-papa.jpg).
+
+![Photo du jeu imprimé et assemblé](photo-jeu-papa.jpg)
+
 ## Contenu du projet
 
 Ce dépôt contient **deux volets complémentaires** :
@@ -22,6 +26,8 @@ Réglages recommandés (à adapter) :
 - Remplissage : 15–20 %
 - Supports : non nécessaires pour la majorité des pièces
 - Plateau : aucune bordure ("brim") requise en principe
+
+> **Astuce (aimants, optionnel)** : dans mon cas, j'ai choisi d'insérer de petits aimants au centre de chaque pièce. J'ai configuré PrusaSlicer pour que l'imprimante fasse une pause à mi-parcours afin de me permettre d'insérer les aimants, puis reprenne l'impression. Les pièces sont ainsi attirées vers le plateau, ce qui rend le jeu plus agréable. C'est une option, **ce n'est absolument pas essentiel**.
 
 ## Comment utiliser le projet
 
@@ -61,3 +67,4 @@ rm -f levels.json && PAPA_FORCE_REBUILD_LEVELS=1 python3 papa_cursor_app_v2.py
 - `requirements.txt` — dépendances Python.
 - `railpack.json` — configuration de déploiement Railway.
 - `*.stl` — pièces imprimables en 3D (plateau + blocs du jeu), exportées depuis Autodesk Fusion.
+- `photo-jeu-papa.jpg` — photo du jeu imprimé et assemblé.
