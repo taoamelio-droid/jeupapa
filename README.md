@@ -27,6 +27,8 @@ Réglages recommandés (à adapter) :
 - Supports : non nécessaires pour la majorité des pièces
 - Plateau : aucune bordure ("brim") requise en principe
 
+> **Astuce (aimants, optionnel)** : dans mon cas, j'ai choisi d'insérer de petits aimants au centre de chaque pièce. J'ai configuré PrusaSlicer pour que l'imprimante fasse une pause à mi-parcours afin de me permettre d'insérer les aimants, puis reprenne l'impression. Les pièces sont ainsi attirées vers le plateau, ce qui rend le jeu plus agréable. C'est une option, **ce n'est absolument pas essentiel**.
+
 ## Comment utiliser le projet
 
 Le jeu combine une **partie physique** (imprimée en 3D) et une **partie web** (les niveaux à reproduire) :
