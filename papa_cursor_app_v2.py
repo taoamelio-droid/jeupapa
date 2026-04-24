@@ -8,6 +8,7 @@ import math
 import os
 import re
 import socket
+import threading
 import time
 
 HOST = "0.0.0.0"
@@ -846,7 +847,8 @@ def load_or_create_levels():
         json.dump({"signature": signature, "levels": levels}, f, ensure_ascii=False, indent=2)
     return levels
 
-LEVELS = load_or_create_levels()
+LEVELS = []
+LEVELS_READY = threading.Event()
 
 def load_progress():
     if os.path.exists(PROGRESS_FILE):
@@ -877,7 +879,22 @@ def recalc_unlocks(progress):
         unlocked = min(VISIBLE_AFTER_100, total)
     progress["unlocked"] = unlocked
 
-PROGRESS = load_progress()
+PROGRESS = {"completed": set(), "unlocked": 0}
+
+def _bootstrap_levels_and_progress():
+    """Charge (ou generere) les niveaux puis la progression dans un thread d'arriere-plan.
+
+    On veut que le serveur HTTP soit deja a l'ecoute avant que ce travail commence,
+    sinon Railway considere que l'app ne repond pas et tue le container en pleine BFS
+    (boucle de crash). Une fois termine, LEVELS_READY est set et les handlers
+    arretent de servir la page d'attente.
+    """
+    global LEVELS, PROGRESS
+    try:
+        LEVELS = load_or_create_levels()
+        PROGRESS = load_progress()
+    finally:
+        LEVELS_READY.set()
 
 def esc(s):
     return html.escape(str(s), quote=True)
@@ -1370,6 +1387,28 @@ def level_page(level_id, celebrate=None):
 """
     return page_template(lvl["name"], body, celebrate=celebrate)
 
+LOADING_PAGE_HTML = """<!doctype html>
+<html lang="fr"><head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta http-equiv="refresh" content="2">
+<title>Generation des niveaux…</title>
+<style>
+body{font-family:system-ui,sans-serif;background:#0f1220;color:#e8eaf1;
+display:flex;align-items:center;justify-content:center;min-height:100vh;margin:0}
+.box{text-align:center;padding:2rem;max-width:32rem}
+h1{font-size:1.4rem;margin:.5rem 0}
+.spin{display:inline-block;width:2.5rem;height:2.5rem;border:4px solid #2d3250;
+border-top-color:#8c9eff;border-radius:50%;animation:sp 1s linear infinite}
+@keyframes sp{to{transform:rotate(360deg)}}
+.muted{opacity:.7;font-size:.9rem}
+</style></head><body>
+<div class="box">
+<div class="spin"></div>
+<h1>Preparation du jeu en cours…</h1>
+<p class="muted">Analyse BFS des niveaux au demarrage. Cette page se rafraichit toute seule.</p>
+</div></body></html>"""
+
 class AppHandler(BaseHTTPRequestHandler):
     def _send_html(self, html_text, status=200):
         data = html_text.encode("utf-8")
@@ -1379,14 +1418,34 @@ class AppHandler(BaseHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(data)
 
+    def _send_text(self, text, status=200):
+        data = text.encode("utf-8")
+        self.send_response(status)
+        self.send_header("Content-Type", "text/plain; charset=utf-8")
+        self.send_header("Content-Length", str(len(data)))
+        self.end_headers()
+        self.wfile.write(data)
+
     def _redirect(self, location):
         self.send_response(303)
         self.send_header("Location", location)
         self.end_headers()
 
+    def _serve_loading(self):
+        # 200 OK pour que les healthchecks HTTP et les navigateurs restent contents.
+        self._send_html(LOADING_PAGE_HTML)
+
     def do_GET(self):
         parsed = urlparse(self.path)
         path = parsed.path
+        # Endpoint leger toujours disponible, meme avant que les niveaux soient prets.
+        if path == "/healthz":
+            ready = LEVELS_READY.is_set()
+            self._send_text("ok\n" if ready else "booting\n")
+            return
+        if not LEVELS_READY.is_set():
+            self._serve_loading()
+            return
         celebrate = parse_celebrate_query(parsed.query)
         if path == "/":
             self._send_html(home_page(celebrate=celebrate))
@@ -1398,6 +1457,9 @@ class AppHandler(BaseHTTPRequestHandler):
         self._send_html(page_template("Introuvable", '<div class="hero"><h1>Page introuvable</h1><p><a class="btn" href="/">Retour</a></p></div>'), status=404)
 
     def do_POST(self):
+        if not LEVELS_READY.is_set():
+            self._serve_loading()
+            return
         parsed = urlparse(self.path)
         path = parsed.path
         m = re.fullmatch(r"/complete/(\d+)", path)
@@ -1435,16 +1497,32 @@ class AppHandler(BaseHTTPRequestHandler):
         self._redirect("/")
 
 def main():
-    print("Inventaires utilises :")
+    print("Inventaires utilises :", flush=True)
     for i, inv in enumerate(TOTAL_INVENTORIES, start=1):
-        print(f"{i}. {inv}  aire={total_inventory_area(inv)}")
+        print(f"{i}. {inv}  aire={total_inventory_area(inv)}", flush=True)
     local_ip = get_local_ip()
-    print(f"Serveur lance sur http://127.0.0.1:{PORT}")
-    print(f"Telephone sur le meme Wi-Fi : http://{local_ip}:{PORT}")
-    print("Progression sauvegardee dans:", PROGRESS_FILE)
-    print("Niveaux sauvegardes dans:", LEVELS_FILE)
+    print(f"Serveur lance sur http://127.0.0.1:{PORT}", flush=True)
+    print(f"Telephone sur le meme Wi-Fi : http://{local_ip}:{PORT}", flush=True)
+    print("Progression sauvegardee dans:", PROGRESS_FILE, flush=True)
+    print("Niveaux sauvegardes dans:", LEVELS_FILE, flush=True)
+
+    # On demarre la generation / le chargement des niveaux en arriere-plan pour
+    # que le serveur HTTP ouvre le port tout de suite. Sans ca, un PaaS comme
+    # Railway tue le container pendant la BFS (healthcheck qui echoue) et on
+    # tombe dans une boucle de crash.
+    bootstrap_thread = threading.Thread(
+        target=_bootstrap_levels_and_progress,
+        name="levels-bootstrap",
+        daemon=True,
+    )
+    bootstrap_thread.start()
+
     server = ThreadingHTTPServer((HOST, PORT), AppHandler)
-    server.serve_forever()
+    try:
+        server.serve_forever()
+    except KeyboardInterrupt:
+        print("\nArret du serveur.", flush=True)
+        server.shutdown()
 
 if __name__ == "__main__":
     main()

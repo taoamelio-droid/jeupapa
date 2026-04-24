@@ -6,6 +6,10 @@ Petit jeu de puzzle physique (glissade parallèle de pièces sur un plateau) acc
 
 ![Photo du jeu imprimé et assemblé](photo-jeu-papa.jpg)
 
+> Un aperçu de l'application web présentant le niveau 1 est également disponible dans le dépôt : [`jeu-papa-niveau-1.png`](jeu-papa-niveau-1.png).
+
+![Aperçu de l'application — niveau 1](jeu-papa-niveau-1.png)
+
 ## Contenu du projet
 
 Ce dépôt contient **deux volets complémentaires** :
@@ -68,3 +72,4 @@ rm -f levels.json && PAPA_FORCE_REBUILD_LEVELS=1 python3 papa_cursor_app_v2.py
 - `railpack.json` — configuration de déploiement Railway.
 - `*.stl` — pièces imprimables en 3D (plateau + blocs du jeu), exportées depuis Autodesk Fusion.
 - `photo-jeu-papa.jpg` — photo du jeu imprimé et assemblé.
+- `jeu-papa-niveau-1.png` — capture d'écran de l'application web présentant le niveau 1.
