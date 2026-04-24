@@ -1,2 +1,2 @@
 # jeupapa
-Un jeu pour distraire les papas
+Un jeu pour divertir les papas
