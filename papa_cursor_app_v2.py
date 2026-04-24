@@ -11,7 +11,7 @@ import socket
 import time
 
 HOST = "0.0.0.0"
-PORT = 8000
+PORT = int(os.environ.get("PORT", 8000))
 
 W = 6
 H = 8
